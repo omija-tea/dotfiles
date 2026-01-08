@@ -1,5 +1,5 @@
-# MAC
-stow -t ~/.config config
+# MAC / UNIX
+scripts/mac.sh
 
 # Window
-setx XDG_CONFIG_HOME "%CD%\config"
+scripts/window.ps1
