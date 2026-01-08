@@ -43,9 +43,9 @@ try {
 }
 
 # 5. AutoHotkey 시작 프로그램 등록
-$ahkSource = Join-Path $configPath "ahk\main.ahk"
+$ahkSource = Join-Path $configPath "ahk\autohotkey.ahk"
 $startupFolder = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup"
-$ahkLink = Join-Path $startupFolder "main.ahk"
+$ahkLink = Join-Path $startupFolder "autohotkey.ahk"
 
 if (Test-Path $ahkSource) {
     if (Test-Path $ahkLink) { 
