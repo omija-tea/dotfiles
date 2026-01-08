@@ -2,4 +2,4 @@
 scripts/mac.sh
 
 # Window
-scripts/window.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\window.ps1
