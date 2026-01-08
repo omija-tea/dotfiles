@@ -22,8 +22,16 @@ if (-not $stowInstalled) {
 }
 
 Show-Doctor (Get-Command "wezterm" -ErrorAction SilentlyContinue) "WezTerm"
+
 Show-Doctor (Get-Command "nvim" -ErrorAction SilentlyContinue) "Neovim"
-$ahkInstalled = (Test-Path "C:\Program Files\AutoHotkey\AutoHotkey.exe") -or (Get-Command "AutoHotkey" -ErrorAction SilentlyContinue)
+
+$ahkStandardPath = "C:\Program Files\AutoHotkey\AutoHotkey.exe"
+$ahkLocalPath = "$env:LOCALAPPDATA\Programs\AutoHotkey\AutoHotkey.exe"
+$ahkUXPath = "$env:LOCALAPPDATA\Programs\AutoHotkey\v2\AutoHotkey64.exe"
+$ahkInstalled = (Test-Path $ahkStandardPath) -or `
+                 (Test-Path $ahkLocalPath) -or `
+                 (Test-Path $ahkUXPath) -or `
+                 (Get-Command "AutoHotkey" -ErrorAction SilentlyContinue)
 Show-Doctor $ahkInstalled "AutoHotkey"
 
 Write-Host ""
