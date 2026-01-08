@@ -1,63 +1,69 @@
-# 색상 출력용 헬퍼 함수
+# 0. 인코딩 설정 (UTF-8 및 콘솔 출력 고정)
+$OutputEncoding = [System.Text.Encoding]::UTF8
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+
+# 1. 색상 출력용 헬퍼 함수
 function Show-Doctor($success, $name) {
-    Write-Host "  [" -NoNewline
     if ($success) {
-        Write-Host "✓" -ForegroundColor Green -NoNewline
-        Write-Host "] $name 가 설치되어 있습니다."
+        Write-Host "  [v] " -ForegroundColor Green -NoNewline
+        Write-Host "$name is installed"
     } else {
-        Write-Host "✗" -ForegroundColor Red -NoNewline
-        Write-Host "] $name 가 설치되어 있지 않습니다."
+        Write-Host "  [x] " -ForegroundColor Red -NoNewline
+        Write-Host "$name is not installed"
     }
 }
 
-Write-Host "`n=== Environment Doctor ==="
+Write-Host "`n=== Windows Environment Doctor ===" -ForegroundColor Cyan
 
-# 1. 의존성 진단
-$stowInstalled = Get-Command "stow" -ErrorAction SilentlyContinue
-Show-Doctor $stowInstalled "GNU Stow"
-
-if (-not $stowInstalled) {
-    Write-Host "`n[ERROR] GNU Stow는 필수 프로그램입니다." -ForegroundColor Red
-    exit
-}
-
+# 2. 프로그램 진단
 Show-Doctor (Get-Command "wezterm" -ErrorAction SilentlyContinue) "WezTerm"
-
 Show-Doctor (Get-Command "nvim" -ErrorAction SilentlyContinue) "Neovim"
 
-$ahkStandardPath = "C:\Program Files\AutoHotkey\AutoHotkey.exe"
-$ahkLocalPath = "$env:LOCALAPPDATA\Programs\AutoHotkey\AutoHotkey.exe"
-$ahkUXPath = "$env:LOCALAPPDATA\Programs\AutoHotkey\v2\AutoHotkey64.exe"
-$ahkInstalled = (Test-Path $ahkStandardPath) -or `
-                 (Test-Path $ahkLocalPath) -or `
-                 (Test-Path $ahkUXPath) -or `
-                 (Get-Command "AutoHotkey" -ErrorAction SilentlyContinue)
+$ahk1 = Test-Path "C:\Program Files\AutoHotkey\AutoHotkey.exe"
+$ahk2 = Test-Path "$env:LOCALAPPDATA\Programs\AutoHotkey\AutoHotkey.exe"
+$ahk3 = Test-Path "$env:LOCALAPPDATA\Programs\AutoHotkey\v2\AutoHotkey64.exe"
+$ahk4 = Get-Command "AutoHotkey" -ErrorAction SilentlyContinue
+$ahkInstalled = $ahk1 -or $ahk2 -or $ahk3 -or $ahk4
 Show-Doctor $ahkInstalled "AutoHotkey"
 
-Write-Host ""
-Write-Host "설정 파일 연결 시작"
+Write-Host "`nStart linking config..." -ForegroundColor Cyan
 
-# 경로 계산 및 이동
+# 3. 경로 계산
 $dotfilesPath = (Get-Item "$PSScriptRoot\..").FullName
 $configPath = Join-Path $dotfilesPath "config"
 
-# 환경 변수 설정
-[System.Environment]::SetEnvironmentVariable('XDG_CONFIG_HOME', $configPath, 'User')
-Write-Host "  [" -NoNewline
-Write-Host "✓" -ForegroundColor Green -NoNewline
-Write-Host "] XDG_CONFIG_HOME 환경 변수 설정 완료"
+# 4. XDG_CONFIG_HOME 환경 변수 설정
+try {
+    [System.Environment]::SetEnvironmentVariable('XDG_CONFIG_HOME', $configPath, 'User')
+    Write-Host "  [v] " -ForegroundColor Green -NoNewline
+    Write-Host "XDG_CONFIG_HOME set complete"
+} catch {
+    Write-Host "  [x] " -ForegroundColor Red -NoNewline
+    Write-Host "Failed to set environment variable"
+}
 
-# AHK 링크
+# 5. AutoHotkey 시작 프로그램 등록
 $ahkSource = Join-Path $configPath "ahk\main.ahk"
 $startupFolder = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup"
 $ahkLink = Join-Path $startupFolder "main.ahk"
 
 if (Test-Path $ahkSource) {
-    if (Test-Path $ahkLink) { Remove-Item $ahkLink }
-    New-Item -ItemType SymbolicLink -Path $ahkLink -Target $ahkSource | Out-Null
-    Write-Host "  [" -NoNewline
-    Write-Host "✓" -ForegroundColor Green -NoNewline
-    Write-Host "] AutoHotkey 시작 프로그램 등록 완료"
+    if (Test-Path $ahkLink) { 
+        Remove-Item $ahkLink -Force -ErrorAction SilentlyContinue 
+    }
+    
+    try {
+        New-Item -ItemType SymbolicLink -Path $ahkLink -Target $ahkSource -ErrorAction Stop | Out-Null
+        Write-Host "  [v] " -ForegroundColor Green -NoNewline
+        Write-Host "AutoHotkey added to startup"
+
+        Start-Process $ahkLink
+        Write-Host "  [v] " -ForegroundColor Green -NoNewline
+        Write-Host "AutoHotkey has been started"
+    } catch {
+        Write-Host "  [x] " -ForegroundColor Red -NoNewline
+        Write-Host "AutoHotkey link failed: Please run PowerShell as ADMIN"
+    }
 }
 
-Write-Host "=== Diagnosis Complete! Restart your terminal ===`n"
+Write-Host "`n=== Complete ===`n" -ForegroundColor Cyan
