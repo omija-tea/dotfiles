@@ -1,0 +1,42 @@
+" 각종 셋팅
+set clipboard+=unnamed
+set timeoutlen=5000
+set keep-english-in-normal
+set number relativenumber
+set ignorecase
+set smartcase
+set incsearch
+
+" esc -> jk로 맵핑
+imap jk <Esc>
+
+" 각종 플러그인
+set multiple-cursors
+set surround
+set which-key
+
+" no 리더키 - vim 맵핑
+nmap gh 0
+nmap gl $
+
+" no 리더키 - intellij 맵핑
+nmap ge <action>(GotoNextError)
+nmap gE <action>(GotoPreviousError)
+nmap gt <action>(GotoTest)
+nmap gm <action>(MethodUp)
+nmap gd <action>(GotoDeclaration)
+nmap ga <action>(GotoImplementation)
+nmap L <action>(NextTap)
+nmap H <action>(PreviousTap)
+
+" 리더키
+let mapleader=" "
+
+" 디버그
+namp <leader>dr <Action>(Run)
+namp <leader>dd <Action>(Debug)
+namp <leader>dp <Action>(ToggleLineBreakpoint)
+namp <leader>dc <Action>(RedesignedRunConfigurationSelector)
+
+
+

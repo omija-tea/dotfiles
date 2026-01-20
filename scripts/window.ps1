@@ -42,7 +42,25 @@ try {
     Write-Host "Failed to set environment variable"
 }
 
-# 5. AutoHotkey 시작 프로그램 등록
+# 5. Ideavimrc 연결
+$ideavimSource = Join-Path $configPath "ideavim\.ideavimrc"
+$ideavimTarget = Join-Path $HOME ".ideavimrc"
+
+if (Test-Path $ideavimSource) {
+    if (Test-Path $ideavimTarget) { 
+        Remove-Item $ideavimTarget -Force -ErrorAction SilentlyContinue 
+    }
+    try {
+        New-Item -ItemType SymbolicLink -Path $ideavimTarget -Target $ideavimSource -ErrorAction Stop | Out-Null
+        Write-Host "  [v] " -ForegroundColor Green -NoNewline
+        Write-Host "IdeaVim config linked to $HOME"
+    } catch {
+        Write-Host "  [x] " -ForegroundColor Red -NoNewline
+        Write-Host "IdeaVim link failed: Please run PowerShell as ADMIN"
+    }
+}
+
+# 6. AutoHotkey 시작 프로그램 등록
 $ahkSource = Join-Path $configPath "ahk\autohotkey.ahk"
 $startupFolder = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup"
 $ahkLink = Join-Path $startupFolder "autohotkey.ahk"

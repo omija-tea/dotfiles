@@ -45,4 +45,13 @@ else
     echo -e "  ${RED}[✗]${NC} error linking config"
 fi
 
+# ideavimrc 연결
+IDEAVIM_SRC="$DOTFILES_ROOT/config/ideavim/.ideavimrc"
+if [ -f "$IDEAVIM_SRC" ]; then
+    ln -sf "$IDEAVIM_SRC" ~/.ideavimrc
+    echo -e "  ${GREEN}[✓]${NC} IdeaVim link complete (~/.ideavimrc)"
+else
+    echo -e "  ${RED}[✗]${NC} .ideavimrc not found in config/ideavim/"
+fi
+
 echo -e "=== Complete ===\n"
