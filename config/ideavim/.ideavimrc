@@ -26,17 +26,18 @@ nmap gt <action>(GotoTest)
 nmap gm <action>(MethodUp)
 nmap gd <action>(GotoDeclaration)
 nmap ga <action>(GotoImplementation)
-nmap L <action>(NextTap)
-nmap H <action>(PreviousTap)
+nmap L <action>(NextTab)
+nmap H <action>(PreviousTab)
 
 " 리더키
 let mapleader=" "
 
 " 디버그
-namp <leader>dr <Action>(Run)
-namp <leader>dd <Action>(Debug)
-namp <leader>dp <Action>(ToggleLineBreakpoint)
-namp <leader>dc <Action>(RedesignedRunConfigurationSelector)
+nmap <leader>dr <Action>(Run)
+nmap <leader>dd <Action>(Debug)
+nmap <leader>dp <Action>(ToggleLineBreakpoint)
+nmap <leader>dc <Action>(RedesignedRunConfigurationSelector)
 
-
-
+" temp
+nmap <leader>w <Action>(SaveAll)
+nmap <leader>q <Action>(CloseContent)
