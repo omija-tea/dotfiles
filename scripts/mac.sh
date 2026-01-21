@@ -29,29 +29,33 @@ fi
 check_app "wezterm" "WezTerm"
 check_app "nvim" "Neovim"
 
-echo ""
-echo "start linking config"
+echo -e "\n--- Start Linking ---"
 
-# 경로 이동 (Scripts 폴더 기준 한 단계 위)
-cd "$(dirname "$0")/.."
+# 스크립트 위치와 상관없이 dotfiles 루트 디렉토리로 이동
+DOTFILES_ROOT=$(cd "$(dirname "$0")/.." && pwd)
+cd "$DOTFILES_ROOT"
+
+# 목적지 디렉토리 생성
 mkdir -p ~/.config
 
-# 설정 연결
+# [Task 1] ~/.config/ 하위로 들어갈 설정들
 stow -t ~/.config config
-
 if [ $? -eq 0 ]; then
-    echo -e "  ${GREEN}[✓]${NC} link complete (~/.config/)"
+    echo -e "  ${GREEN}[✓]${NC} Config files linked to ~/.config/"
 else
-    echo -e "  ${RED}[✗]${NC} error linking config"
+    echo -e "  ${RED}[✗]${NC} Error linking ~/.config/"
 fi
 
-# ideavimrc 연결
-IDEAVIM_SRC="$DOTFILES_ROOT/config/ideavim/.ideavimrc"
-if [ -f "$IDEAVIM_SRC" ]; then
-    ln -sf "$IDEAVIM_SRC" ~/.ideavimrc
-    echo -e "  ${GREEN}[✓]${NC} IdeaVim link complete (~/.ideavimrc)"
+# [Task 2] 홈 디렉토리($HOME) 바로 아래로 들어갈 설정들 (.ideavimrc 등)
+if [ -d "home" ]; then
+    stow -t ~ home
+    if [ $? -eq 0 ]; then
+        echo -e "  ${GREEN}[✓]${NC} Home dotfiles linked to ~/"
+    else
+        echo -e "  ${RED}[✗]${NC} Error linking home dotfiles"
+    fi
 else
-    echo -e "  ${RED}[✗]${NC} .ideavimrc not found in config/ideavim/"
+    echo -e "  ${RED}[✗]${NC} 'home' directory not found"
 fi
 
-echo -e "=== Complete ===\n"
+echo -e "\n=== Complete ===\n"
