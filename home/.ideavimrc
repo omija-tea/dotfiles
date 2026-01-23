@@ -28,6 +28,10 @@ nmap gd <action>(GotoDeclaration)
 nmap ga <action>(GotoImplementation)
 nmap L <action>(NextTab)
 nmap H <action>(PreviousTab)
+nmap <S-Up> <Action>(EditorSelectWord)
+vmap <S-Up> <Action>(EditorSelectWord)
+nmap <S-Down> <Action>(EditorUnSelectWord)
+vmap <S-Down> <Action>(EditorUnSelectWord)
 
 " 리더키
 let mapleader=" "
@@ -38,6 +42,10 @@ nmap <leader>dd <Action>(Debug)
 nmap <leader>dp <Action>(ToggleLineBreakpoint)
 nmap <leader>dc <Action>(RedesignedRunConfigurationSelector)
 
+" generate / intention
+nmap <leader>gg <Action>(Generate)
+nmap <leader>gi <Action>(ShowIntentionActions)
+
 " temp
-nmap <leader>w <Action>(SaveAll)
+nmap <leader>s <Action>(SaveAll)
 nmap <leader>q <Action>(CloseContent)
