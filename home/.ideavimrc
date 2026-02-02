@@ -46,6 +46,12 @@ nmap <leader>dc <Action>(RedesignedRunConfigurationSelector)
 nmap <leader>gg <Action>(Generate)
 nmap <leader>gi <Action>(ShowIntentionActions)
 
+" file
+nmap <leader>fa <Action>(NewClass)
+nmap <leader>fA <Action>(NewDir)
+nmap <leader>fl <Action>(SelectInProjectView)
+nmap <leader>fr <Action>(RecentFiles)
+
 " temp
 nmap <leader>s <Action>(SaveAll)
 nmap <leader>q <Action>(CloseContent)
