@@ -18,13 +18,20 @@ set which-key
 " no 리더키 - vim 맵핑
 nmap gh 0
 nmap gl $
+nmap Y y$
 
 " no 리더키 - intellij 맵핑
+let g:WhichKeyDesc_GotoNextError = "ge 다음에러 "
 nmap ge <action>(GotoNextError)
+let g:WhichKeyDesc_GotoPreviousError = "gE 이전에러"
 nmap gE <action>(GotoPreviousError)
+let g:WhichKeyDesc_GotoTest = "gt 테스트 이동"
 nmap gt <action>(GotoTest)
+let g:WhichKeyDesc_MethodUp = "gm MethodUp"
 nmap gm <action>(MethodUp)
+let g:WhichKeyDesc_GotoDeclaration = "gd 정의로 이동"
 nmap gd <action>(GotoDeclaration)
+let g:WhichKeyDesc_GotoImplementation = "ga 구현부로 이동 "
 nmap ga <action>(GotoImplementation)
 nmap L <action>(NextTab)
 nmap H <action>(PreviousTab)
@@ -37,15 +44,49 @@ vmap <S-Down> <Action>(EditorUnSelectWord)
 let mapleader=" "
 
 " 디버그
+let g:WhichKeyDesc_Debug = "<leader>d 디버그"
+
+
+let g:WhichKeyDesc_Debug_Run = "<leader>dr 실행"
 nmap <leader>dr <Action>(Run)
+let g:WhichKeyDesc_Debug_Debug = "<leader>dd 디버그 "
 nmap <leader>dd <Action>(Debug)
+let g:WhichKeyDesc_Debug_ToggleLineBreakpoint = "<leader>dp BreakPoint 설정 "
 nmap <leader>dp <Action>(ToggleLineBreakpoint)
+let g:WhichKeyDesc_Debug_RedesignRunConfig = "<leader>dc 실행 파일 설정"
 nmap <leader>dc <Action>(RedesignedRunConfigurationSelector)
 
 " generate / intention
+let g:WhichKeyDesc_Generate = "<leader>g 생성"
+
+
+let g:WhichKeyDesc_Generate_Generate = "<leader>gg 생성 "
 nmap <leader>gg <Action>(Generate)
+let g:WhichKeyDesc_Generate_ShowIntentionActions = "<leader>gi 전구 "
 nmap <leader>gi <Action>(ShowIntentionActions)
 
+" file
+let g:WhichKeyDesc_File = "<leader>f 파일/폴더"
+
+
+let g:WhichKeyDesc_File_NewClass = "<leader>fa 새파일 "
+nmap <leader>fa <Action>(NewClass)
+let g:WhichKeyDesc_File_NewDir = "<leader>fA 새폴더 "
+nmap <leader>fA <Action>(NewDir)
+let g:WhichKeyDesc_File_SelectInProjectView = "<leader>fl 파일 위치 "
+nmap <leader>fl <Action>(SelectInProjectView)
+let g:WhichKeyDesc_File_RecentFiles = "<leader>fr 최근 파일 "
+nmap <leader>fr <Action>(RecentFiles)
+
+" tab
+let g:WhichKeyDesc_Tab = "<leader>t 탭 관리"
+
+
+let g:WhichKeyDesc_Tab_ReopenClosedTab = "<leader>tr 닫은탭 다시열기 "
+nmap <leader>tr <Action>(ReopenClosedTab)
+
 " temp
+let g:WhichKeyDesc_SaveAll = "<leader>s 저장"
 nmap <leader>s <Action>(SaveAll)
+let g:WhichKeyDesc_CloseContent = "<leader>q 탭 닫기 "
 nmap <leader>q <Action>(CloseContent)
