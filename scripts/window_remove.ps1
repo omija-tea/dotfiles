@@ -40,11 +40,21 @@ if ($installedApps.Count -gt 0) {
 
     if ($choice -eq 'A' -or $choice -eq 'a') {
         $targets = $installedApps
-    } elseif ($choice -ne 'Q' -and $choice -ne 'q') {
+    } elseif ($choice -ne 'Q' -and $choice -ne 'q' -and -not [string]::IsNullOrWhiteSpace($choice)) {
         $indices = $choice.Split(',').Trim()
+        
+        # [ref] 에러 방지를 위해 변수 사전 선언
+        $n = 0 
+        
         foreach ($idx in $indices) {
-            if ([int]::TryParse($idx, [ref]$n) -and $n -le $installedApps.Count) {
-                $targets += $installedApps[$n-1]
+            # 변수 $n을 사전에 선언했으므로 이제 [ref]를 안전하게 사용할 수 있습니다.
+            if ([int]::TryParse($idx, [ref]$n)) {
+                if ($n -gt 0 -and $n -le $installedApps.Count) {
+                    $targets += $installedApps[$n-1]
+                } else {
+                    Write-Host "  [!] " -ForegroundColor Yellow -NoNewline
+                    Write-Host "Number $n is out of range."
+                }
             }
         }
     }
@@ -60,7 +70,6 @@ if ($installedApps.Count -gt 0) {
     Write-Host "  [!] " -ForegroundColor Yellow -NoNewline
     Write-Host "No managed apps found to uninstall."
 }
-
 # 4. 심볼릭 링크 정리 (선택 사항)
 Write-Host "`n=== 2. Cleanup symbolic links? ===" -ForegroundColor Cyan
 $cleanLinks = Read-Host "Do you want to remove created symbolic links in HOME? (y/n)"
