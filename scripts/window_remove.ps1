@@ -4,57 +4,101 @@ $OutputEncoding = [System.Text.Encoding]::UTF8
 
 # 1. 관리 대상 프로그램 리스트
 $apps = @(
-    @{ Name = "IntelliJ IDEA"; ID = "JetBrains.IntelliJIDEA" }
-    @{ Name = "Logi Options+"; ID = "Logitech.OptionsPlus" }
-    @{ Name = "AutoHotkey";    ID = "AutoHotkey.AutoHotkey" }
-    @{ Name = "Obsidian";      ID = "Obsidian.Obsidian" }
-    @{ Name = "WezTerm";       ID = "wezterm.wezterm" }
-    @{ Name = "Neovim";        ID = "Neovim.Neovim" }
+    @{ Name = "IntelliJ IDEA"; ID = "JetBrains.IntelliJIDEA"; Type = "winget" }
+    @{ Name = "Logi Options+"; ID = "Logitech.OptionsPlus";   Type = "winget" }
+    @{ Name = "AutoHotkey";    ID = "AutoHotkey.AutoHotkey";   Type = "winget" }
+    @{ Name = "Obsidian";      ID = "Obsidian.Obsidian";       Type = "winget" }
+    @{ Name = "WezTerm";       ID = "wezterm.wezterm";         Type = "winget" }
+    @{ Name = "Neovim";        ID = "Neovim.Neovim";           Type = "winget" }
+    @{ Name = "im-select";     ID = "";                        Type = "manual"
+       Dest = "$env:USERPROFILE\bin\im-select.exe" }
 )
 
-Write-Host "`n=== 1. Installed App Check ===" -ForegroundColor Cyan
-
-# 2. 현재 설치된 프로그램 확인
-$installedApps = New-Object System.Collections.Generic.List[PSCustomObject]
-
-foreach ($app in $apps) {
-    winget list --id $($app.ID) -e --source winget > $null 2>&1
-    if ($LASTEXITCODE -eq 0) {
-        $installedApps.Add($app)
-        Write-Host "  [v] " -ForegroundColor Green -NoNewline
-        Write-Host "$($app.Name) is found and ready to uninstall."
+# --- 설치 상태 확인 함수 ---
+function Test-AppInstalled($app) {
+    if ($app.Type -eq "winget") {
+        winget list --id $($app.ID) -e --source winget > $null 2>&1
+        return ($LASTEXITCODE -eq 0)
+    } else {
+        return (Test-Path $app.Dest)
     }
 }
 
-# 3. CLI 기반 삭제 선택
-if ($installedApps.Count -gt 0) {
-    Write-Host "`n[ Apps to Uninstall ]" -ForegroundColor Red
+# --- 앱 삭제 함수 ---
+function Uninstall-App($app) {
+    if ($app.Type -eq "winget") {
+        winget uninstall --id $app.ID --silent --accept-source-agreements > $null
+    } else {
+        $dest = $app.Dest
+        Remove-Item $dest -Force -ErrorAction SilentlyContinue
+
+        # bin 폴더가 비었으면 같이 삭제 + PATH 정리
+        $dir = Split-Path $dest -Parent
+        if ((Get-ChildItem $dir -Force -ErrorAction SilentlyContinue).Count -eq 0) {
+            Remove-Item $dir -Force -ErrorAction SilentlyContinue
+            Write-Host "  [v] " -ForegroundColor Green -NoNewline
+            Write-Host "Removed empty directory: $dir"
+        }
+        $userPath = [Environment]::GetEnvironmentVariable("PATH", "User")
+        if ($userPath -like "*$dir*") {
+            $newPath = ($userPath.Split(';') | Where-Object { $_ -ne $dir }) -join ';'
+            [Environment]::SetEnvironmentVariable("PATH", $newPath, "User")
+            Write-Host "  [v] " -ForegroundColor Green -NoNewline
+            Write-Host "Removed from PATH: $dir"
+        }
+    }
+}
+
+# === 메인 루프 ===
+Write-Host "`n=== 1. App Uninstall ===" -ForegroundColor Cyan
+
+while ($true) {
+    # 설치된 앱 감지
+    $installedApps = New-Object System.Collections.Generic.List[PSCustomObject]
+
+    foreach ($app in $apps) {
+        if (Test-AppInstalled $app) {
+            $installedApps.Add($app)
+        }
+    }
+
+    # 설치된 앱 없음 → 루프 탈출
+    if ($installedApps.Count -eq 0) {
+        Write-Host "  [!] " -ForegroundColor Yellow -NoNewline
+        Write-Host "No managed apps found."
+        break
+    }
+
+    # 현재 설치된 앱 표시
+    Write-Host "`n[ Installed Apps ]" -ForegroundColor Red
     for ($i = 0; $i -lt $installedApps.Count; $i++) {
-        Write-Host "  ($($i + 1)) $($installedApps[$i].Name)"
+        $tag = if ($installedApps[$i].Type -eq "manual") { " (direct download)" } else { "" }
+        Write-Host "  ($($i + 1)) $($installedApps[$i].Name)$tag"
     }
     Write-Host "  (A) Uninstall All"
     Write-Host "  (Q) Quit"
 
     $choice = Read-Host "`nSelect numbers to uninstall (e.g. 1,2 or A)"
+
+    # Quit
+    if ($choice -eq 'Q' -or $choice -eq 'q' -or [string]::IsNullOrWhiteSpace($choice)) {
+        break
+    }
+
+    # 대상 결정
     $targets = @()
+    $n = 0
 
     if ($choice -eq 'A' -or $choice -eq 'a') {
         $targets = $installedApps
-    } elseif ($choice -ne 'Q' -and $choice -ne 'q' -and -not [string]::IsNullOrWhiteSpace($choice)) {
+    } else {
         $indices = $choice.Split(',').Trim()
-        
-        # [ref] 에러 방지를 위해 변수 사전 선언
-        $n = 0 
-        
         foreach ($idx in $indices) {
-            # 변수 $n을 사전에 선언했으므로 이제 [ref]를 안전하게 사용할 수 있습니다.
-            if ([int]::TryParse($idx, [ref]$n)) {
-                if ($n -gt 0 -and $n -le $installedApps.Count) {
-                    $targets += $installedApps[$n-1]
-                } else {
-                    Write-Host "  [!] " -ForegroundColor Yellow -NoNewline
-                    Write-Host "Number $n is out of range."
-                }
+            if ([int]::TryParse($idx, [ref]$n) -and $n -gt 0 -and $n -le $installedApps.Count) {
+                $targets += $installedApps[$n - 1]
+            } else {
+                Write-Host "  [!] " -ForegroundColor Yellow -NoNewline
+                Write-Host "Invalid selection: $idx"
             }
         }
     }
@@ -63,14 +107,13 @@ if ($installedApps.Count -gt 0) {
     foreach ($item in $targets) {
         Write-Host "  [-] " -ForegroundColor Red -NoNewline
         Write-Host "Uninstalling $($item.Name)..."
-        # --silent 옵션으로 삭제 진행
-        winget uninstall --id $item.ID --silent --accept-source-agreements > $null
+        Uninstall-App $item
     }
-} else {
-    Write-Host "  [!] " -ForegroundColor Yellow -NoNewline
-    Write-Host "No managed apps found to uninstall."
+
+    Write-Host ""
 }
-# 4. 심볼릭 링크 정리 (선택 사항)
+
+# 2. 심볼릭 링크 정리
 Write-Host "`n=== 2. Cleanup symbolic links? ===" -ForegroundColor Cyan
 $cleanLinks = Read-Host "Do you want to remove created symbolic links in HOME? (y/n)"
 
@@ -87,7 +130,7 @@ if ($cleanLinks -eq 'y' -or $cleanLinks -eq 'Y') {
             }
         }
     }
-    
+
     # AHK 시작프로그램 링크 삭제
     $ahkLink = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\autohotkey.ahk"
     if (Test-Path $ahkLink) {

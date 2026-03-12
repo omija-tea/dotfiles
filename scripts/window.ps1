@@ -2,51 +2,107 @@
 $OutputEncoding = [System.Text.Encoding]::UTF8
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
-# 1. 프로그램 리스트
+# 1. 프로그램 리스트 (winget + 수동 다운로드 통합)
 $apps = @(
-    @{ Name = "IntelliJ IDEA"; ID = "JetBrains.IntelliJIDEA" }
-    @{ Name = "Logi Options+"; ID = "Logitech.OptionsPlus" }
-    @{ Name = "AutoHotkey";    ID = "AutoHotkey.AutoHotkey" }
-    @{ Name = "Obsidian";      ID = "Obsidian.Obsidian" }
-    @{ Name = "WezTerm";       ID = "wezterm.wezterm" }
-    @{ Name = "Neovim";        ID = "Neovim.Neovim" }
+    @{ Name = "IntelliJ IDEA"; ID = "JetBrains.IntelliJIDEA"; Type = "winget" }
+    @{ Name = "Logi Options+"; ID = "Logitech.OptionsPlus";   Type = "winget" }
+    @{ Name = "AutoHotkey";    ID = "AutoHotkey.AutoHotkey";   Type = "winget" }
+    @{ Name = "Obsidian";      ID = "Obsidian.Obsidian";       Type = "winget" }
+    @{ Name = "WezTerm";       ID = "wezterm.wezterm";         Type = "winget" }
+    @{ Name = "Neovim";        ID = "Neovim.Neovim";           Type = "winget" }
+    @{ Name = "im-select";     ID = "";                        Type = "manual"
+       Url  = "https://github.com/daipeihust/im-select/raw/master/win/out/x64/im-select.exe"
+       Dest = "$env:USERPROFILE\bin\im-select.exe" }
 )
 
-Write-Host "`n=== 1. App Installation Check ===" -ForegroundColor Cyan
-
-# 2. 미설치 프로그램 감지 및 목록 생성
-$uninstalledApps = New-Object System.Collections.Generic.List[PSCustomObject]
-
-foreach ($app in $apps) {
-    winget list --id $($app.ID) -e --source winget > $null 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        $uninstalledApps.Add($app)
+# --- 설치 상태 확인 함수 ---
+function Test-AppInstalled($app) {
+    if ($app.Type -eq "winget") {
+        winget list --id $($app.ID) -e --source winget > $null 2>&1
+        return ($LASTEXITCODE -eq 0)
     } else {
-        Write-Host "  [v] " -ForegroundColor Green -NoNewline
-        Write-Host "$($app.Name) is already installed."
+        return (Test-Path $app.Dest)
     }
 }
 
-# 3. CLI 기반 설치 선택
-if ($uninstalledApps.Count -gt 0) {
+# --- 앱 설치 함수 ---
+function Install-App($app) {
+    if ($app.Type -eq "winget") {
+        winget install --id $app.ID --silent --accept-package-agreements --accept-source-agreements
+    } else {
+        $dest = $app.Dest
+        $dir = Split-Path $dest -Parent
+        mkdir $dir -Force > $null
+        Invoke-WebRequest -Uri $app.Url -OutFile $dest
+
+        # PATH에 추가
+        if ($env:PATH -notlike "*$dir*") {
+            $env:PATH += ";$dir"
+            [Environment]::SetEnvironmentVariable("PATH",
+                [Environment]::GetEnvironmentVariable("PATH", "User") + ";$dir",
+                "User")
+        }
+
+        if (Test-Path $dest) {
+            Write-Host "  [v] " -ForegroundColor Green -NoNewline
+            Write-Host "Downloaded to $dest"
+        } else {
+            Write-Host "  [x] " -ForegroundColor Red -NoNewline
+            Write-Host "Download failed."
+        }
+    }
+}
+
+# === 메인 루프 ===
+Write-Host "`n=== 1. App Installation ===" -ForegroundColor Cyan
+
+while ($true) {
+    # 미설치 앱 감지
+    $uninstalledApps = New-Object System.Collections.Generic.List[PSCustomObject]
+
+    foreach ($app in $apps) {
+        if (Test-AppInstalled $app) {
+            Write-Host "  [v] " -ForegroundColor Green -NoNewline
+            Write-Host "$($app.Name) is already installed."
+        } else {
+            $uninstalledApps.Add($app)
+        }
+    }
+
+    # 전부 설치됨 → 루프 탈출
+    if ($uninstalledApps.Count -eq 0) {
+        Write-Host "  [!] " -ForegroundColor Yellow -NoNewline
+        Write-Host "All apps are already installed."
+        break
+    }
+
+    # 선택지 표시
     Write-Host "`n[ Available Apps to Install ]" -ForegroundColor Yellow
     for ($i = 0; $i -lt $uninstalledApps.Count; $i++) {
-        Write-Host "  ($($i + 1)) $($uninstalledApps[$i].Name)"
+        $tag = if ($uninstalledApps[$i].Type -eq "manual") { " (direct download)" } else { "" }
+        Write-Host "  ($($i + 1)) $($uninstalledApps[$i].Name)$tag"
     }
     Write-Host "  (A) Install All"
     Write-Host "  (Q) Skip / Quit"
 
     $choice = Read-Host "`nSelect numbers to install (e.g. 1,3,4 or A)"
+
+    # Quit
+    if ($choice -eq 'Q' -or $choice -eq 'q' -or [string]::IsNullOrWhiteSpace($choice)) {
+        break
+    }
+
+    # 대상 결정
     $targets = @()
-    $n = 0 # [ref] 오류 방지를 위해 변수 미리 선언
+    $n = 0
 
     if ($choice -eq 'A' -or $choice -eq 'a') {
         $targets = $uninstalledApps
-    } elseif ($choice -ne 'Q' -and $choice -ne 'q' -and $choice -ne "") {
+    } else {
         $indices = $choice.Split(',').Trim()
         foreach ($idx in $indices) {
-            if ([int]::TryParse($idx, [ref]$n) -and $n -le $uninstalledApps.Count -and $n -gt 0) {
-                $targets += $uninstalledApps[$n-1]
+            if ([int]::TryParse($idx, [ref]$n) -and $n -gt 0 -and $n -le $uninstalledApps.Count) {
+                $targets += $uninstalledApps[$n - 1]
             }
         }
     }
@@ -55,11 +111,10 @@ if ($uninstalledApps.Count -gt 0) {
     foreach ($item in $targets) {
         Write-Host "  [+] " -ForegroundColor Yellow -NoNewline
         Write-Host "Installing $($item.Name)..."
-        winget install --id $item.ID --silent --accept-package-agreements --accept-source-agreements
+        Install-App $item
     }
-} else {
-    Write-Host "  [!] " -ForegroundColor Yellow -NoNewline
-    Write-Host "All apps are already installed."
+
+    Write-Host ""
 }
 
 Write-Host "`n=== 2. Environment Setup & Linking ===" -ForegroundColor Cyan
@@ -96,7 +151,7 @@ if (Test-Path $homeDotfilesPath) {
     }
 }
 
-# 7. AutoHotkey 시작 프로그램 등록 및 실행 (경로 추적 보강)
+# 7. AutoHotkey 시작 프로그램 등록 및 실행
 $ahkSource = Join-Path $configPath "ahk\autohotkey.ahk"
 $startupFolder = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup"
 $ahkLink = Join-Path $startupFolder "autohotkey.ahk"
@@ -104,11 +159,9 @@ $ahkLink = Join-Path $startupFolder "autohotkey.ahk"
 if (Test-Path $ahkSource) {
     if (Test-Path $ahkLink) { Remove-Item $ahkLink -Force }
     try {
-        # 1. PATH에서 먼저 찾아보고, 없으면 예상되는 기본 설치 경로들을 뒤집니다.
         $ahkExe = (Get-Command "AutoHotkey64.exe" -ErrorAction SilentlyContinue).Source
         if (-not $ahkExe) { $ahkExe = (Get-Command "AutoHotkey.exe" -ErrorAction SilentlyContinue).Source }
-        
-        # 2. PATH에 없을 경우를 대비한 하드코딩된 기본 경로 후보들
+
         $ahkPaths = @(
             "$env:ProgramFiles\AutoHotkey\v2\AutoHotkey64.exe",
             "$env:ProgramFiles\AutoHotkey\AutoHotkey64.exe",
@@ -122,12 +175,10 @@ if (Test-Path $ahkSource) {
         }
 
         if ($ahkExe) {
-            # 심볼릭 링크 생성
             New-Item -ItemType SymbolicLink -Path $ahkLink -Target $ahkSource -ErrorAction Stop | Out-Null
             Write-Host "  [v] " -ForegroundColor Green -NoNewline
             Write-Host "AutoHotkey added to startup (Path: $ahkExe)"
-            
-            # 현재 즉시 실행
+
             Start-Process $ahkExe -ArgumentList "`"$ahkSource`""
             Write-Host "  [v] " -ForegroundColor Green -NoNewline
             Write-Host "AutoHotkey has been started"
@@ -140,4 +191,5 @@ if (Test-Path $ahkSource) {
         Write-Host "AutoHotkey setup failed: $($_.Exception.Message)"
     }
 }
+
 Write-Host "`n=== Complete ===`n" -ForegroundColor Cyan
