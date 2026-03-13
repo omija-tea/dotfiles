@@ -2,7 +2,7 @@
 $OutputEncoding = [System.Text.Encoding]::UTF8
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
-# 1. 프로그램 리스트 (winget + 수동 다운로드 통합)
+# 1. 프로그램 리스트 (winget + 수동 다운로드 + 스크립트 통합)
 $apps = @(
     @{ Name = "IntelliJ IDEA"; ID = "JetBrains.IntelliJIDEA"; Type = "winget" }
     @{ Name = "Logi Options+"; ID = "Logitech.OptionsPlus";   Type = "winget" }
@@ -13,42 +13,69 @@ $apps = @(
     @{ Name = "im-select";     ID = "";                        Type = "manual"
        Url  = "https://github.com/daipeihust/im-select/raw/master/win/out/x64/im-select.exe"
        Dest = "$env:USERPROFILE\bin\im-select.exe" }
+    @{ Name = "Claude Code";   ID = "";                        Type = "script"
+       CheckPath  = "$env:USERPROFILE\.local\bin\claude.exe"
+       ScriptUrl  = "https://claude.ai/install.ps1" }
 )
 
 # --- 설치 상태 확인 함수 ---
 function Test-AppInstalled($app) {
-    if ($app.Type -eq "winget") {
-        winget list --id $($app.ID) -e --source winget > $null 2>&1
-        return ($LASTEXITCODE -eq 0)
-    } else {
-        return (Test-Path $app.Dest)
+    switch ($app.Type) {
+        "winget" {
+            winget list --id $($app.ID) -e --source winget > $null 2>&1
+            return ($LASTEXITCODE -eq 0)
+        }
+        "manual" {
+            return (Test-Path $app.Dest)
+        }
+        "script" {
+            return (Test-Path $app.CheckPath)
+        }
     }
 }
 
 # --- 앱 설치 함수 ---
 function Install-App($app) {
-    if ($app.Type -eq "winget") {
-        winget install --id $app.ID --silent --accept-package-agreements --accept-source-agreements
-    } else {
-        $dest = $app.Dest
-        $dir = Split-Path $dest -Parent
-        mkdir $dir -Force > $null
-        Invoke-WebRequest -Uri $app.Url -OutFile $dest
-
-        # PATH에 추가
-        if ($env:PATH -notlike "*$dir*") {
-            $env:PATH += ";$dir"
-            [Environment]::SetEnvironmentVariable("PATH",
-                [Environment]::GetEnvironmentVariable("PATH", "User") + ";$dir",
-                "User")
+    switch ($app.Type) {
+        "winget" {
+            winget install --id $app.ID --silent --accept-package-agreements --accept-source-agreements
         }
+        "manual" {
+            $dest = $app.Dest
+            $dir = Split-Path $dest -Parent
+            mkdir $dir -Force > $null
+            Invoke-WebRequest -Uri $app.Url -OutFile $dest
 
-        if (Test-Path $dest) {
-            Write-Host "  [v] " -ForegroundColor Green -NoNewline
-            Write-Host "Downloaded to $dest"
-        } else {
-            Write-Host "  [x] " -ForegroundColor Red -NoNewline
-            Write-Host "Download failed."
+            # PATH에 추가
+            if ($env:PATH -notlike "*$dir*") {
+                $env:PATH += ";$dir"
+                [Environment]::SetEnvironmentVariable("PATH",
+                    [Environment]::GetEnvironmentVariable("PATH", "User") + ";$dir",
+                    "User")
+            }
+
+            if (Test-Path $dest) {
+                Write-Host "  [v] " -ForegroundColor Green -NoNewline
+                Write-Host "Downloaded to $dest"
+            } else {
+                Write-Host "  [x] " -ForegroundColor Red -NoNewline
+                Write-Host "Download failed."
+            }
+        }
+        "script" {
+            try {
+                Invoke-Expression (Invoke-RestMethod -Uri $app.ScriptUrl)
+                if (Test-Path $app.CheckPath) {
+                    Write-Host "  [v] " -ForegroundColor Green -NoNewline
+                    Write-Host "Installed successfully: $($app.CheckPath)"
+                } else {
+                    Write-Host "  [x] " -ForegroundColor Red -NoNewline
+                    Write-Host "Install script ran but executable not found: $($app.CheckPath)"
+                }
+            } catch {
+                Write-Host "  [x] " -ForegroundColor Red -NoNewline
+                Write-Host "Script install failed: $($_.Exception.Message)"
+            }
         }
     }
 }
@@ -79,7 +106,11 @@ while ($true) {
     # 선택지 표시
     Write-Host "`n[ Available Apps to Install ]" -ForegroundColor Yellow
     for ($i = 0; $i -lt $uninstalledApps.Count; $i++) {
-        $tag = if ($uninstalledApps[$i].Type -eq "manual") { " (direct download)" } else { "" }
+        $tag = switch ($uninstalledApps[$i].Type) {
+            "manual" { " (direct download)" }
+            "script" { " (install script)" }
+            default  { "" }
+        }
         Write-Host "  ($($i + 1)) $($uninstalledApps[$i].Name)$tag"
     }
     Write-Host "  (A) Install All"

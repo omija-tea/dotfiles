@@ -12,39 +12,81 @@ $apps = @(
     @{ Name = "Neovim";        ID = "Neovim.Neovim";           Type = "winget" }
     @{ Name = "im-select";     ID = "";                        Type = "manual"
        Dest = "$env:USERPROFILE\bin\im-select.exe" }
+    @{ Name = "Claude Code";   ID = "";                        Type = "script"
+       CheckPath = "$env:USERPROFILE\.local\bin\claude.exe"
+       ExtraDirs = @("$env:USERPROFILE\.local\share\claude") }
 )
 
 # --- 설치 상태 확인 함수 ---
 function Test-AppInstalled($app) {
-    if ($app.Type -eq "winget") {
-        winget list --id $($app.ID) -e --source winget > $null 2>&1
-        return ($LASTEXITCODE -eq 0)
-    } else {
-        return (Test-Path $app.Dest)
+    switch ($app.Type) {
+        "winget" {
+            winget list --id $($app.ID) -e --source winget > $null 2>&1
+            return ($LASTEXITCODE -eq 0)
+        }
+        "manual" {
+            return (Test-Path $app.Dest)
+        }
+        "script" {
+            return (Test-Path $app.CheckPath)
+        }
     }
 }
 
 # --- 앱 삭제 함수 ---
 function Uninstall-App($app) {
-    if ($app.Type -eq "winget") {
-        winget uninstall --id $app.ID --silent --accept-source-agreements > $null
-    } else {
-        $dest = $app.Dest
-        Remove-Item $dest -Force -ErrorAction SilentlyContinue
-
-        # bin 폴더가 비었으면 같이 삭제 + PATH 정리
-        $dir = Split-Path $dest -Parent
-        if ((Get-ChildItem $dir -Force -ErrorAction SilentlyContinue).Count -eq 0) {
-            Remove-Item $dir -Force -ErrorAction SilentlyContinue
-            Write-Host "  [v] " -ForegroundColor Green -NoNewline
-            Write-Host "Removed empty directory: $dir"
+    switch ($app.Type) {
+        "winget" {
+            winget uninstall --id $app.ID --silent --accept-source-agreements > $null
         }
-        $userPath = [Environment]::GetEnvironmentVariable("PATH", "User")
-        if ($userPath -like "*$dir*") {
-            $newPath = ($userPath.Split(';') | Where-Object { $_ -ne $dir }) -join ';'
-            [Environment]::SetEnvironmentVariable("PATH", $newPath, "User")
-            Write-Host "  [v] " -ForegroundColor Green -NoNewline
-            Write-Host "Removed from PATH: $dir"
+        "manual" {
+            $dest = $app.Dest
+            Remove-Item $dest -Force -ErrorAction SilentlyContinue
+
+            # bin 폴더가 비었으면 같이 삭제 + PATH 정리
+            $dir = Split-Path $dest -Parent
+            if ((Get-ChildItem $dir -Force -ErrorAction SilentlyContinue).Count -eq 0) {
+                Remove-Item $dir -Force -ErrorAction SilentlyContinue
+                Write-Host "  [v] " -ForegroundColor Green -NoNewline
+                Write-Host "Removed empty directory: $dir"
+            }
+            $userPath = [Environment]::GetEnvironmentVariable("PATH", "User")
+            if ($userPath -like "*$dir*") {
+                $newPath = ($userPath.Split(';') | Where-Object { $_ -ne $dir }) -join ';'
+                [Environment]::SetEnvironmentVariable("PATH", $newPath, "User")
+                Write-Host "  [v] " -ForegroundColor Green -NoNewline
+                Write-Host "Removed from PATH: $dir"
+            }
+        }
+        "script" {
+            # 실행 파일 삭제
+            $exe = $app.CheckPath
+            if (Test-Path $exe) {
+                Remove-Item $exe -Force -ErrorAction SilentlyContinue
+                Write-Host "  [v] " -ForegroundColor Green -NoNewline
+                Write-Host "Removed: $exe"
+            }
+
+            # bin 폴더가 비었으면 함께 삭제
+            $binDir = Split-Path $exe -Parent
+            if (Test-Path $binDir) {
+                if ((Get-ChildItem $binDir -Force -ErrorAction SilentlyContinue).Count -eq 0) {
+                    Remove-Item $binDir -Force -ErrorAction SilentlyContinue
+                    Write-Host "  [v] " -ForegroundColor Green -NoNewline
+                    Write-Host "Removed empty directory: $binDir"
+                }
+            }
+
+            # 추가 디렉토리 삭제 (share 폴더 등)
+            if ($app.ExtraDirs) {
+                foreach ($dir in $app.ExtraDirs) {
+                    if (Test-Path $dir) {
+                        Remove-Item $dir -Recurse -Force -ErrorAction SilentlyContinue
+                        Write-Host "  [v] " -ForegroundColor Green -NoNewline
+                        Write-Host "Removed directory: $dir"
+                    }
+                }
+            }
         }
     }
 }
@@ -72,7 +114,11 @@ while ($true) {
     # 현재 설치된 앱 표시
     Write-Host "`n[ Installed Apps ]" -ForegroundColor Red
     for ($i = 0; $i -lt $installedApps.Count; $i++) {
-        $tag = if ($installedApps[$i].Type -eq "manual") { " (direct download)" } else { "" }
+        $tag = switch ($installedApps[$i].Type) {
+            "manual" { " (direct download)" }
+            "script" { " (install script)" }
+            default  { "" }
+        }
         Write-Host "  ($($i + 1)) $($installedApps[$i].Name)$tag"
     }
     Write-Host "  (A) Uninstall All"
