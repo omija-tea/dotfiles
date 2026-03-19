@@ -20,11 +20,5 @@ return {
         -- 사용하는 다른 플러그인들이 생기면 여기서 true로
       },
     })
-
-    -- 2. Neovim 배경 설정
-    vim.opt.background = "light"
-
-    -- 3. 테마 적용 실행
-    vim.cmd.colorscheme "catppuccin"
   end,
 }

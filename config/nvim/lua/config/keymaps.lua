@@ -2,3 +2,6 @@
 
 -- 1. jk 눌러서 일반모드로 탈출
 vim.keymap.set("i", "jk", "<Esc>", { desc = "Exit insert mode with jk" })
+
+-- Neo-tree 단축키 추가
+vim.keymap.set("n", "<leader>e", ":Neotree toggle<CR>", { desc = "Toggle Neo-tree" })
