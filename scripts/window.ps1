@@ -4,13 +4,12 @@ $OutputEncoding = [System.Text.Encoding]::UTF8
 
 # 1. 프로그램 리스트 (winget + 수동 다운로드 + 스크립트 통합)
 $apps = @(
-    @{ Name = "IntelliJ IDEA"; ID = "JetBrains.IntelliJIDEA";  Type = "winget" }
-    @{ Name = "Logi Options+"; ID = "Logitech.OptionsPlus";    Type = "winget" }
+    @{ Name = "IntelliJ IDEA"; ID = "JetBrains.IntelliJIDEA"; Type = "winget" }
+    @{ Name = "Logi Options+"; ID = "Logitech.OptionsPlus";   Type = "winget" }
     @{ Name = "AutoHotkey";    ID = "AutoHotkey.AutoHotkey";   Type = "winget" }
     @{ Name = "Obsidian";      ID = "Obsidian.Obsidian";       Type = "winget" }
     @{ Name = "WezTerm";       ID = "wezterm.wezterm";         Type = "winget" }
     @{ Name = "Neovim";        ID = "Neovim.Neovim";           Type = "winget" }
-    @{ Name = "CF Warp";       ID = "Cloudflare.Warp";         Type = "winget" }
     @{ Name = "im-select";     ID = "";                        Type = "manual"
        Url  = "https://github.com/daipeihust/im-select/raw/master/win/out/x64/im-select.exe"
        Dest = "$env:USERPROFILE\bin\im-select.exe" }
