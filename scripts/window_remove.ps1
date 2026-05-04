@@ -10,7 +10,6 @@ $apps = @(
     @{ Name = "Obsidian";      ID = "Obsidian.Obsidian";       Type = "winget" }
     @{ Name = "WezTerm";       ID = "wezterm.wezterm";         Type = "winget" }
     @{ Name = "Neovim";        ID = "Neovim.Neovim";           Type = "winget" }
-    @{ Name = "CF Warp";       ID = "Cloudflare.Warp";         Type = "winget" }
     @{ Name = "im-select";     ID = "";                        Type = "manual"
        Dest = "$env:USERPROFILE\bin\im-select.exe" }
     @{ Name = "Claude Code";   ID = "";                        Type = "script"
