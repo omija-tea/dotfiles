@@ -8,7 +8,7 @@ $apps = @(
     @{ Name = "Logi Options+"; ID = "Logitech.OptionsPlus";   Type = "winget" }
     @{ Name = "AutoHotkey";    ID = "AutoHotkey.AutoHotkey";   Type = "winget" }
     @{ Name = "Obsidian";      ID = "Obsidian.Obsidian";       Type = "winget" }
-    @{ Name = "WezTerm";       ID = "wezterm.wezterm";         Type = "winget" }
+    @{ Name = "WezTerm";       ID = "wez.wezterm";         Type = "winget" }
     @{ Name = "Neovim";        ID = "Neovim.Neovim";           Type = "winget" }
     @{ Name = "im-select";     ID = "";                        Type = "manual"
        Url  = "https://github.com/daipeihust/im-select/raw/master/win/out/x64/im-select.exe"
