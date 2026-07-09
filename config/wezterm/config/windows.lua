@@ -25,6 +25,24 @@ config.hide_tab_bar_if_only_one_tab = true
 config.adjust_window_size_when_changing_font_size = false
 
 config.keys = {
+  -- 붙여넣기. wezterm이 키를 먼저 처리하므로 로컬 pwsh든 ssh 세션이든 동일하게 동작한다.
+  { key = 'v', mods = 'CTRL', action = act.PasteFrom 'Clipboard' },
+
+  -- 선택 영역이 있으면 복사, 없으면 Ctrl+C를 그대로 전달해 SIGINT를 살려둔다.
+  {
+    key = 'c',
+    mods = 'CTRL',
+    action = wezterm.action_callback(function(window, pane)
+      local selection = window:get_selection_text_for_pane(pane)
+      if selection and selection ~= '' then
+        window:perform_action(act.CopyTo 'ClipboardAndPrimarySelection', pane)
+        window:perform_action(act.ClearSelection, pane)
+      else
+        window:perform_action(act.SendKey { key = 'c', mods = 'CTRL' }, pane)
+      end
+    end),
+  },
+
   -- pane 분할 (좌우: Alt+Shift+D, 상하: Ctrl+Shift+Alt+D)
   { key = 'd', mods = 'ALT', action = act.SplitPane { direction = 'Right' } },
   { key = 'd', mods = 'SHIFT|ALT', action = act.SplitPane { direction = 'Down' } },
